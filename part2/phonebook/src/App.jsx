@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import ListEntries from "./components/ListEntries";
 import NewEntry from "./components/NewEntry";
 import axios from "axios";
+import entries from "./services/entries";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -10,27 +11,42 @@ const App = () => {
   const [newFilter, setNewFilter] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:3001/persons").then((response) => {
-      setPersons(response.data);
-    });
+    entries.getAll().then((initialData) => setPersons(initialData));
   }, []);
 
   const handleSubmit = (event) => {
     const existingName = persons.some((person) => person.name == newName);
     event.preventDefault();
     if (existingName) {
-      alert(`${newName} is already in the phonebook`);
+      if (
+        window.confirm(
+          `${newName} is already in the phonebook. Replace the old number with the new one?`,
+        )
+      ) {
+        const person = persons.find((n) => n.name === newName);
+        const changedPerson = { ...person, number: newNumber };
+        entries
+          .change(person.id, changedPerson)
+          .then((response) =>
+            setPersons(persons.map((p) => (p.id === person.id ? response : p))),
+          );
+      }
     } else {
-      setPersons(
-        persons.concat({
-          name: newName,
-          number: newNumber,
-          id: persons.length + 1,
-        }),
-      );
+      entries.create({ name: newName, number: newNumber }).then((response) => {
+        setPersons(persons.concat(response));
+      });
     }
     setNewName("");
     setNewNumber("");
+  };
+
+  const handleDeletion = (person) => {
+    if (window.confirm(`Delete ${person.name} ?`)) {
+      entries
+        .remove(person.id)
+        .then(setPersons(persons.filter((p) => p.id != person.id)));
+    } else {
+    }
   };
 
   const handleNameChange = (event) => {
@@ -57,7 +73,11 @@ const App = () => {
         handleNumberChange={handleNumberChange}
       />
       <h3>Numbers</h3>
-      <ListEntries persons={persons} filter={newFilter} />
+      <ListEntries
+        persons={persons}
+        filter={newFilter}
+        handleDeletion={handleDeletion}
+      />
     </div>
   );
 };
