@@ -3,12 +3,14 @@ import ListEntries from "./components/ListEntries";
 import NewEntry from "./components/NewEntry";
 import axios from "axios";
 import entries from "./services/entries";
+import Notification from "./components/Notification";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [newFilter, setNewFilter] = useState("");
+  const [message, setMessage] = useState({ message: null, type: null });
 
   useEffect(() => {
     entries.getAll().then((initialData) => setPersons(initialData));
@@ -27,13 +29,39 @@ const App = () => {
         const changedPerson = { ...person, number: newNumber };
         entries
           .change(person.id, changedPerson)
-          .then((response) =>
-            setPersons(persons.map((p) => (p.id === person.id ? response : p))),
-          );
+          .then(
+            (response) =>
+              setPersons(
+                persons.map((p) => (p.id === person.id ? response : p)),
+              ),
+            setMessage({
+              message: `Changed the number of ${changedPerson.name} to ${changedPerson.number}`,
+              type: "info",
+            }),
+            setTimeout(() => {
+              setMessage({ message: null, type: null });
+            }, 5000),
+          )
+          .catch((error) => {
+            setMessage({
+              message: `Information of ${person.name} has already been removed from the server`,
+              type: "error",
+            });
+            setTimeout(() => {
+              setMessage({ message: null, type: null });
+            }, 5000);
+          });
       }
     } else {
       entries.create({ name: newName, number: newNumber }).then((response) => {
         setPersons(persons.concat(response));
+        setMessage({
+          message: `${response.name} has been added`,
+          type: "info",
+        });
+        setTimeout(() => {
+          setMessage({ message: null, type: null });
+        }, 5000);
       });
     }
     setNewName("");
@@ -44,7 +72,25 @@ const App = () => {
     if (window.confirm(`Delete ${person.name} ?`)) {
       entries
         .remove(person.id)
-        .then(setPersons(persons.filter((p) => p.id != person.id)));
+        .then(
+          setPersons(persons.filter((p) => p.id != person.id)),
+          setMessage({
+            message: `${person.name} has been deleted`,
+            type: "info",
+          }),
+          setTimeout(() => {
+            setMessage({ message: null, type: null });
+          }, 5000),
+        )
+        .catch((error) => {
+          (setMessage({
+            message: `${person.name} has already been deleted`,
+            type: "error",
+          }),
+            setTimeout(() => {
+              setMessage({ message: null, type: null });
+            }, 5000));
+        });
     } else {
     }
   };
@@ -62,6 +108,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} />
       filter shown with{" "}
       <input value={newFilter} onChange={handleFilterChange} />
       <h3>add a new</h3>

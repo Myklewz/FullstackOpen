@@ -4,11 +4,6 @@
       "name": "hddfhfdfdh",
       "number": "5683684",
       "id": "GLTob8lBvMw"
-    },
-    {
-      "name": "hallo",
-      "number": "abc",
-      "id": "S8cYGLV8m7U"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
